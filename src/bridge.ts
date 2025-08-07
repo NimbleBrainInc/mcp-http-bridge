@@ -32,6 +32,7 @@ interface BridgeConfig {
 export class MCPHttpBridge {
   private config: BridgeConfig;
   private axiosInstance;
+  private sessionId: string | null = null;
 
   constructor(config: BridgeConfig) {
     this.config = config;
@@ -41,6 +42,7 @@ export class MCPHttpBridge {
       headers: {
         'Authorization': `Bearer ${config.bearerToken}`,
         'Content-Type': 'application/json',
+        'Accept': 'application/json, text/event-stream',
       },
     };
 
@@ -178,8 +180,50 @@ export class MCPHttpBridge {
 
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
-        const response = await this.axiosInstance.post(this.config.endpoint, request);
-        return response;
+        // Add session ID header if we have one
+        const requestConfig: any = {
+          responseType: 'text',
+          transformResponse: [(data: any) => data] // Don't auto-parse JSON
+        };
+        
+        if (this.sessionId) {
+          requestConfig.headers = {
+            'mcp-session-id': this.sessionId
+          };
+        }
+        
+        const response = await this.axiosInstance.post(this.config.endpoint, request, requestConfig);
+        
+        // Capture session ID from response headers if present
+        const sessionId = response.headers['mcp-session-id'];
+        if (sessionId && !this.sessionId) {
+          this.sessionId = sessionId;
+          if (process.env.MCP_BRIDGE_VERBOSE === 'true') {
+            console.error(`[Bridge] Captured session ID: ${sessionId}`);
+          }
+        }
+        
+        // Handle SSE responses
+        const contentType = response.headers['content-type'];
+        if (contentType && contentType.includes('text/event-stream')) {
+          const sseData = this.parseSSEResponse(response.data);
+          return {
+            ...response,
+            data: sseData
+          };
+        }
+        
+        // Handle regular JSON responses
+        try {
+          const jsonData = JSON.parse(response.data);
+          return {
+            ...response,
+            data: jsonData
+          };
+        } catch {
+          // If it's not valid JSON, return as-is
+          return response;
+        }
         
       } catch (error: any) {
         lastError = error;
@@ -245,6 +289,34 @@ export class MCPHttpBridge {
         console.error(`[Bridge] Error writing response: ${error.message}`);
       }
     }
+  }
+
+  private parseSSEResponse(sseText: string): any {
+    const lines = sseText.split('\n');
+    let jsonData = '';
+    
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        const data = line.slice(6); // Remove 'data: ' prefix
+        if (data.trim() === '[DONE]') {
+          break;
+        }
+        jsonData += data;
+      }
+    }
+    
+    if (jsonData) {
+      try {
+        return JSON.parse(jsonData);
+      } catch (error) {
+        if (process.env.MCP_BRIDGE_VERBOSE === 'true') {
+          console.error(`[Bridge] Failed to parse SSE JSON: ${error instanceof Error ? error.message : String(error)}`);
+        }
+        return { error: 'Failed to parse SSE response' };
+      }
+    }
+    
+    return null;
   }
 
   private sleep(ms: number): Promise<void> {

@@ -21,6 +21,14 @@ Or use directly with npx:
 npx @nimbletools/mcp-http-bridge --endpoint "https://..." --token "..."
 ```
 
+### Updating
+
+To update to the latest version:
+
+```bash
+npm install -g @nimbletools/mcp-http-bridge@latest
+```
+
 ## Usage
 
 ### Command Line
@@ -88,11 +96,20 @@ The bridge acts as a protocol translator:
 
 1. **Input**: Accepts MCP JSON-RPC messages via stdin
 2. **Translation**: Forwards them as HTTP POST requests to your endpoint
-3. **Output**: Returns responses via stdout in MCP format
+3. **Session Management**: Automatically captures and manages `mcp-session-id` headers
+4. **Output**: Returns responses via stdout in MCP format
 
 ```
 Claude Code ↔ stdio/JSON-RPC ↔ MCP HTTP Bridge ↔ HTTP/JSON ↔ Your MCP Service
 ```
+
+### Features
+
+- ✅ **Session ID Management**: Automatically captures and includes `mcp-session-id` headers
+- ✅ **Server-Sent Events**: Supports both JSON and SSE response formats
+- ✅ **Content Type Negotiation**: Accepts `application/json` and `text/event-stream`
+- ✅ **Error Handling**: Robust retry logic with exponential backoff
+- ✅ **Authentication**: Bearer token support
 
 ## Authentication
 
