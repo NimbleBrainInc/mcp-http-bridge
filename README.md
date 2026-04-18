@@ -1,3 +1,16 @@
+> [!WARNING]
+> **This repository is archived and no longer maintained.**
+>
+> NimbleTools has been superseded by the **NimbleBrain Platform**, which includes first-class remote MCP server support — no external bridge required.
+>
+> **👉 Active successor:** [NimbleBrain Platform](https://github.com/NimbleBrainInc/nimblebrain)
+>
+> Issues and pull requests are closed. Please open any new reports against the successor repository.
+>
+> *The `@nimbletools/mcp-http-bridge` npm package has been deprecated. Existing installations will continue to work but will not receive updates. Previous documentation preserved below for historical reference.*
+
+---
+
 # NimbleTools - MCP HTTP Bridge
 
 Bridge the Model Context Protocol (MCP) stdio interface to HTTP-based MCP services. This allows MCP clients like Claude Code to seamlessly connect to remote MCP servers running over HTTP.
